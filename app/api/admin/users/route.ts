@@ -41,13 +41,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest) {
   try {
-    const { id } = await params;
     const body = await request.json();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
 
     const user = await prisma.user.update({
       where: { id },
