@@ -13,6 +13,56 @@ const transporter = nodemailer.createTransport({
 
 // Email templates
 const emailTemplates = {
+  verificationEmail: (name: string, verifyLink: string) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Email Verification</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #F9FAFB;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 40px 0;">
+            <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <tr>
+                <td style="background-color: #2563EB; padding: 30px; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Verify Your Email</h1>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 40px 30px;">
+                  <h2 style="color: #111827; margin: 0 0 20px 0;">Hi ${name},</h2>
+                  <p style="color: #6B7280; font-size: 16px; line-height: 24px; margin: 0 0 20px 0;">
+                    Thank you for joining! To complete your registration and secure your account, please verify your email address by clicking the securely encrypted verification button below:
+                  </p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${verifyLink}" style="background-color: #2563EB; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold; display: inline-block;">
+                      Verify My Email
+                    </a>
+                  </div>
+                  <p style="color: #6B7280; font-size: 14px; margin: 20px 0 0 0;">
+                    This link will strictly securely expire in 24 hours. If the button doesn't work, safely copy and paste this link into your browser: <br/><br/>
+                    <a href="${verifyLink}" style="color: #2563EB; word-break: break-all;">${verifyLink}</a>
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="background-color: #F9FAFB; padding: 20px 30px; text-align: center;">
+                  <p style="color: #6B7280; font-size: 12px; margin: 0;">
+                    © ${new Date().getFullYear()} MLM E-commerce Platform. All rights reserved.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `,
+
   otp: (name: string, otp: string) => `
     <!DOCTYPE html>
     <html>
@@ -247,6 +297,10 @@ export const emailService = {
 
   async sendPasswordReset(email: string, name: string, resetLink: string) {
     return sendEmail(email, 'Reset Your Password', emailTemplates.passwordReset(name, resetLink));
+  },
+
+  async sendVerificationEmail(email: string, name: string, verifyLink: string) {
+    return sendEmail(email, 'Securely Verify Your Email Address', emailTemplates.verificationEmail(name, verifyLink));
   },
 
   async sendCommissionNotification(email: string, name: string, amount: number, level: number) {

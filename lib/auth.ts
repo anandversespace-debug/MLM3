@@ -89,3 +89,25 @@ export function verifyResetToken(token: string): boolean {
     return false;
   }
 }
+
+/**
+ * Generate email verification token
+ */
+export function generateVerificationToken(email: string): string {
+  return jwt.sign({ email, purpose: 'email-verification' }, JWT_SECRET, { expiresIn: '24h' });
+}
+
+/**
+ * Verify email verification token
+ */
+export function verifyVerificationToken(token: string): string | null {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (decoded && decoded.purpose === 'email-verification' && decoded.email) {
+      return decoded.email;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hashPassword, generateToken } from '@/lib/auth';
-import { generateReferralCode, generateOTP, isValidEmail } from '@/utils/helpers';
+import { hashPassword, generateToken, generateVerificationToken } from '@/lib/auth';
+import { generateReferralCode, isValidEmail } from '@/utils/helpers';
 import { emailService } from '@/lib/email';
 import { buildReferralNetwork } from '@/lib/mlm';
 import { z } from 'zod';
@@ -68,10 +68,6 @@ export async function POST(request: NextRequest) {
     // Generate unique referral code
     const userReferralCode = generateReferralCode(Date.now().toString());
 
-    // Generate OTP
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -88,12 +84,13 @@ export async function POST(request: NextRequest) {
       await buildReferralNetwork(user.id, referralCode);
     }
 
-    // Store OTP in a temporary table or you can use a separate OTP model
-    // For now, we'll store it in user metadata (you can create a separate OTP model)
-    // In production, create a separate VerificationCode model
+    // Generate secure email verification token and magic link
+    const verificationToken = generateVerificationToken(email);
+    const domain = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+    const verifyLink = `${domain}/verify-email?token=${verificationToken}`;
 
-    // Send OTP email
-    await emailService.sendOTP(email, name, otp);
+    // Send verification email
+    await emailService.sendVerificationEmail(email, name, verifyLink);
 
     // Generate token (but user needs to verify OTP first)
     const token = generateToken(user.id, user.email, user.role);
@@ -101,7 +98,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Registration successful. Please verify your email with the OTP sent to your email.',
+        message: 'Registration successful. We sent a secure verification link to your email.',
         data: {
           userId: user.id,
           email: user.email,
