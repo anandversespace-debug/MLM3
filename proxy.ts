@@ -82,13 +82,15 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc.)
+     * Explicitly match only the application paths that require proxy interception
+     * so we completely avoid Edge network static asset interception bugs on Vercel.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/health).*)',
     '/api/:path*',
+    '/admin/:path*',
+    '/dashboard/:path*',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/verify-otp'
   ],
 };
