@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: 'Login failed',
+        message: 'Login failed internally. Check database connection.',
         error: error.message,
       },
       { status: 500 }

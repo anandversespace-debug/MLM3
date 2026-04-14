@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Session retrieval error:', error);
     return NextResponse.json(
-      { success: false, message: 'Server Internal Error' },
+      { success: false, message: 'Server Internal Error', error: error.message },
       { status: 500 }
     );
   }
