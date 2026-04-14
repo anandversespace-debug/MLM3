@@ -34,7 +34,7 @@ export default function LoginPage() {
       }
 
       // Login successful
-      login(data.data.token, data.data.user);
+      login(data.data.user);
       
       // Redirect based on role
       if (data.data.user.role === 'ADMIN') {

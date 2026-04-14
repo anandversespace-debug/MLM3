@@ -58,14 +58,24 @@ export async function POST(request: NextRequest) {
     // Return user data (excluding password)
     const { password: _, ...userData } = user;
 
-    return NextResponse.json({
+    // Securely attach HttpOnly Cookie
+    const response = NextResponse.json({
       success: true,
       message: 'Login successful',
-      data: {
-        user: userData,
-        token,
-      },
+      data: { user: userData }
     });
+
+    response.cookies.set({
+      name: 'accessToken',
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
