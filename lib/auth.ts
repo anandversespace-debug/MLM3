@@ -2,7 +2,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: JWT_SECRET is missing in production environment!');
+}
+
+const USED_SECRET = JWT_SECRET || 'temporary-dev-secret-key-replace-this';
 const JWT_EXPIRES_IN = '7d';
 
 /**
@@ -29,7 +35,7 @@ export function generateToken(userId: string, email: string, role: string): stri
       email,
       role,
     },
-    JWT_SECRET,
+    USED_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
 }
@@ -39,7 +45,7 @@ export function generateToken(userId: string, email: string, role: string): stri
  */
 export function verifyToken(token: string): any {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, USED_SECRET);
   } catch (error) {
     return null;
   }
@@ -75,7 +81,7 @@ export async function getUserFromToken(token: string) {
  * Generate password reset token (simple approach using timestamp)
  */
 export function generateResetToken(): string {
-  return jwt.sign({ timestamp: Date.now() }, JWT_SECRET, { expiresIn: '1h' });
+  return jwt.sign({ timestamp: Date.now() }, USED_SECRET, { expiresIn: '1h' });
 }
 
 /**
@@ -83,7 +89,7 @@ export function generateResetToken(): string {
  */
 export function verifyResetToken(token: string): boolean {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, USED_SECRET);
     return !!(decoded as any).timestamp;
   } catch {
     return false;
@@ -94,7 +100,7 @@ export function verifyResetToken(token: string): boolean {
  * Generate email verification token
  */
 export function generateVerificationToken(email: string): string {
-  return jwt.sign({ email, purpose: 'email-verification' }, JWT_SECRET, { expiresIn: '24h' });
+  return jwt.sign({ email, purpose: 'email-verification' }, USED_SECRET, { expiresIn: '24h' });
 }
 
 /**
@@ -102,7 +108,7 @@ export function generateVerificationToken(email: string): string {
  */
 export function verifyVerificationToken(token: string): string | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, USED_SECRET) as any;
     if (decoded && decoded.purpose === 'email-verification' && decoded.email) {
       return decoded.email;
     }
@@ -111,3 +117,4 @@ export function verifyVerificationToken(token: string): string | null {
     return null;
   }
 }
+
