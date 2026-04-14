@@ -16,7 +16,7 @@ declare global {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, getTotalPrice, clearCart } = useCart();
-  const { user, isAuthenticated, token } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -70,7 +70,6 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           amount: total,
@@ -100,7 +99,6 @@ export default function CheckoutPage() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
               },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,

@@ -67,51 +67,35 @@ export async function buildReferralNetwork(newUserId: string, referralCode: stri
  * Get upline chain for a user (up to 10 levels)
  */
 export async function getUplineChain(userId: string, maxLevel: number = 10) {
-  const uplineChain: Array<{ userId: string; level: number; isEligibleForMLM: boolean; email: string; name: string }> = [];
-
-  let currentUserId = userId;
-  
-  for (let level = 1; level <= maxLevel; level++) {
-    const network = await prisma.referralNetwork.findFirst({
-      where: {
-        downlineId: currentUserId,
-        level,
-      },
-      select: {
-        upline: {
-          select: {
-            id: true,
-            isEligibleForMLM: true,
-            email: true,
-            name: true,
-          },
+  // Utilizing the natively generated network map saves exponential database pings
+  const networks = await prisma.referralNetwork.findMany({
+    where: {
+      downlineId: userId,
+      level: { lte: maxLevel },
+    },
+    select: {
+      level: true,
+      upline: {
+        select: {
+          id: true,
+          isEligibleForMLM: true,
+          email: true,
+          name: true,
         },
       },
-    });
+    },
+    orderBy: {
+      level: 'asc',
+    },
+  });
 
-    if (!network?.upline) break;
-
-    uplineChain.push({
-      userId: network.upline.id,
-      level,
-      isEligibleForMLM: network.upline.isEligibleForMLM,
-      email: network.upline.email,
-      name: network.upline.name,
-    });
-
-    // Get the next downline to traverse up
-    const nextNetwork = await prisma.referralNetwork.findFirst({
-      where: {
-        downlineId: network.upline.id,
-        level: 1,
-      },
-    });
-
-    if (!nextNetwork) break;
-    currentUserId = nextNetwork.uplineId;
-  }
-
-  return uplineChain;
+  return networks.map((net: any) => ({
+    userId: net.upline.id,
+    level: net.level,
+    isEligibleForMLM: net.upline.isEligibleForMLM,
+    email: net.upline.email,
+    name: net.upline.name,
+  }));
 }
 
 /**

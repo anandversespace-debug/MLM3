@@ -4,7 +4,7 @@ import { getUserFromToken } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.cookies.get('accessToken')?.value || request.headers.get('authorization')?.replace('Bearer ', '');
     // In production, we'd also check if user has 'ADMIN' role here
 
     if (!token) {

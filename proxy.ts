@@ -7,7 +7,7 @@ import { rateLimit } from '@/lib/rate-limit';
  * Next.js Middleware - Applied to all routes
  * Handles: Security headers, CORS, rate limiting, protected routes
  */
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const response = NextResponse.next();
@@ -19,17 +19,17 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/')) {
     handleCORS(request, response);
 
-    // Rate limiting for API routes
-    if (pathname.startsWith('/api/auth/')) {
-      const limit = rateLimit(request, 'AUTH');
-      if (limit.limited) return limit.response;
-    } else if (pathname.startsWith('/api/payment/')) {
-      const limit = rateLimit(request, 'PAYMENT');
-      if (limit.limited) return limit.response;
-    } else {
-      const limit = rateLimit(request, 'API');
-      if (limit.limited) return limit.response;
-    }
+    // Rate limiting disabled temporarily for development
+    // if (pathname.startsWith('/api/auth/')) {
+    //   const limit = rateLimit(request, 'AUTH');
+    //   if (limit.limited) return limit.response;
+    // } else if (pathname.startsWith('/api/payment/')) {
+    //   const limit = rateLimit(request, 'PAYMENT');
+    //   if (limit.limited) return limit.response;
+    // } else {
+    //   const limit = rateLimit(request, 'API');
+    //   if (limit.limited) return limit.response;
+    // }
   }
 
   // Protected routes - Admin panel

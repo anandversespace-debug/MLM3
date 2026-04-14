@@ -51,11 +51,10 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Update user: activate and make eligible for MLM
+    // Update user: activate account
     await prisma.user.update({
       where: { email },
       data: {
-        isEligibleForMLM: true, // Assuming this serves as our verification flag
         isActive: true,
       },
     });

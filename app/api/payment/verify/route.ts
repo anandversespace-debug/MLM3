@@ -6,7 +6,10 @@ import { distributeCommissions, updateMLMEligibility } from '@/lib/mlm';
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    // Retrieve token safely from Native HTTPOnly Cookie or fallback to Header
+    const token = request.cookies.get('accessToken')?.value || 
+                  request.headers.get('authorization')?.replace('Bearer ', '');
+
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

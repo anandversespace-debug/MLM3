@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         phone,
         password: hashedPassword,
         referralCode: userReferralCode,
+        isActive: false, // Account is inactive until email is verified
       },
     });
 
