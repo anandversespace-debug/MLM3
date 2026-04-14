@@ -10,6 +10,12 @@ interface User {
   role: string;
   isActive: boolean;
   walletBalance: number;
+  totalEarnings: number;
+  referralCode: string;
+  isEligibleForMLM: boolean;
+  phone?: string;
+  referredBy?: string | null;
+  level: number;
 }
 
 interface AuthContextType {
@@ -83,7 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   if (isInitializing) {
-    return null; // or a tiny loader globally
+    return null;
   }
 
   return (

@@ -19,17 +19,19 @@ export default async function proxy(request: NextRequest) {
   if (pathname.startsWith('/api/')) {
     handleCORS(request, response);
 
-    // Rate limiting disabled temporarily for development
-    // if (pathname.startsWith('/api/auth/')) {
-    //   const limit = rateLimit(request, 'AUTH');
-    //   if (limit.limited) return limit.response;
-    // } else if (pathname.startsWith('/api/payment/')) {
-    //   const limit = rateLimit(request, 'PAYMENT');
-    //   if (limit.limited) return limit.response;
-    // } else {
-    //   const limit = rateLimit(request, 'API');
-    //   if (limit.limited) return limit.response;
-    // }
+    // Rate limiting for API routes
+    if (process.env.NODE_ENV === 'production') {
+      if (pathname.startsWith('/api/auth/')) {
+        const limit = rateLimit(request, 'AUTH');
+        if (limit.limited) return limit.response;
+      } else if (pathname.startsWith('/api/payment/')) {
+        const limit = rateLimit(request, 'PAYMENT');
+        if (limit.limited) return limit.response;
+      } else {
+        const limit = rateLimit(request, 'API');
+        if (limit.limited) return limit.response;
+      }
+    }
   }
 
   // Protected routes - Admin panel
@@ -86,7 +88,9 @@ export const config = {
      * so we completely avoid Edge network static asset interception bugs on Vercel.
      */
     '/api/:path*',
+    '/admin',
     '/admin/:path*',
+    '/dashboard',
     '/dashboard/:path*',
     '/login',
     '/register',
