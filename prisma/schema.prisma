@@ -1,0 +1,457 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  phone             String?
+  password          String
+  referralCode      String   @unique
+  referredBy        String?
+  level             Int      @default(0)
+  isActive          Boolean  @default(true)
+  isEligibleForMLM  Boolean  @default(false)
+  totalEarnings     Float    @default(0)
+  walletBalance     Float    @default(0)
+  role              Role     @default(USER)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // KYC Fields
+  kycStatus         KycStatus @default(NOT_SUBMITTED)
+  kycDocuments      String?  // JSON array of document URLs
+  idProofType       String?  // Aadhaar, PAN, Passport, etc.
+  idProofNumber     String?
+  address           String?
+  city              String?
+  state             String?
+  pincode           String?
+  
+  orders            Order[]
+  transactions      Transaction[]
+  commissions       Commission[] @relation("CommissionEarner")
+  fromCommissions   Commission[] @relation("CommissionFrom")
+  uplines           ReferralNetwork[] @relation("DownlineUser")
+  downlines         ReferralNetwork[] @relation("UplineUser")
+  wishlist          Wishlist[]
+  withdrawRequests  WithdrawRequest[]
+  notifications     Notification[]
+  blogs             Blog[]
+  supportTickets    SupportTicket[]
+  auditLogs         AuditLog[] @relation("UserAuditLog")
+  
+  @@index([email])
+  @@index([referralCode])
+  @@index([kycStatus])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  stock       Int      @default(0)
+  images      String?  // JSON array of image URLs
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  orderItems  OrderItem[]
+  wishlist    Wishlist[]
+  
+  @@index([category])
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  userId            String
+  totalAmount       Float
+  status            OrderStatus @default(PENDING)
+  paymentId         String?
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  shippingAddress   String?  // JSON
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User     @relation(fields: [userId], references: [id])
+  items             OrderItem[]
+  commissions       Commission[]
+  
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  type        TransactionType
+  amount      Float
+  description String?
+  status      TransactionStatus @default(COMPLETED)
+  createdAt   DateTime        @default(now())
+  
+  user        User            @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([type])
+}
+
+model Commission {
+  id         String   @id @default(cuid())
+  userId     String   // Earner
+  fromUserId String   // Buyer
+  level      Int      // 1-10
+  amount     Float
+  orderId    String
+  status     CommissionStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+  
+  user       User     @relation("CommissionEarner", fields: [userId], references: [id])
+  fromUser   User     @relation("CommissionFrom", fields: [fromUserId], references: [id])
+  order      Order    @relation(fields: [orderId], references: [id])
+  
+  @@index([userId])
+  @@index([fromUserId])
+  @@index([orderId])
+}
+
+model ReferralNetwork {
+  id         String   @id @default(cuid())
+  uplineId   String
+  downlineId String
+  level      Int      // 1-10
+  createdAt  DateTime @default(now())
+  
+  upline     User     @relation("UplineUser", fields: [uplineId], references: [id])
+  downline   User     @relation("DownlineUser", fields: [downlineId], references: [id])
+  
+  @@unique([uplineId, downlineId])
+  @@index([uplineId])
+  @@index([downlineId])
+}
+
+model Coupon {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  discountType  DiscountType
+  discountValue Float
+  minOrderValue Float    @default(0)
+  maxUses       Int      @default(0)
+  usedCount     Int      @default(0)
+  expiryDate    DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  
+  @@index([code])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model WithdrawRequest {
+  id          String            @id @default(cuid())
+  userId      String
+  amount      Float
+  status      WithdrawStatus    @default(PENDING)
+  bankDetails String?           // JSON
+  processedAt DateTime?
+  createdAt   DateTime          @default(now())
+  
+  user        User              @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String?
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([isRead])
+}
+
+model AdminUser {
+  id              String     @id @default(cuid())
+  name            String
+  email           String     @unique
+  password        String
+  role            AdminRole  @default(ADMIN)
+  invitedById     String?    // Admin who invited this user
+  isActive        Boolean    @default(true)
+  permissions     String?    // JSON array of permissions
+  lastLogin       DateTime?
+  createdAt       DateTime   @default(now())
+  
+  activityLogs    AdminActivityLog[]
+  invitedBy       AdminUser? @relation("AdminInviter", fields: [invitedById], references: [id])
+  invitedAdmins   AdminUser[] @relation("AdminInviter")
+  
+  @@index([email])
+}
+
+model Blog {
+  id         String   @id @default(cuid())
+  title      String
+  slug       String   @unique
+  content    String
+  authorId   String?
+  coverImage String?
+  published  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  author     User?    @relation(fields: [authorId], references: [id])
+  
+  @@index([slug])
+  @@index([published])
+}
+
+model Settings {
+  id                   String   @id @default(cuid())
+  mlmCommissionLevels  String   @default("{}")  // JSON
+  siteSettings         String   @default("{}")  // JSON
+  paymentSettings      String   @default("{}")  // JSON
+  emailSettings        String   @default("{}")  // JSON
+  smsSettings          String   @default("{}")  // JSON
+  taxSettings          String   @default("{}")  // JSON
+  securitySettings     String   @default("{}")  // JSON
+  updatedAt            DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum TransactionType {
+  PURCHASE
+  COMMISSION
+  WITHDRAWAL
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CommissionStatus {
+  PENDING
+  CREDITED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum WithdrawStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+enum KycStatus {
+  NOT_SUBMITTED
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model SupportTicket {
+  id          String         @id @default(cuid())
+  userId      String
+  subject     String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  category    String?
+  response    String?
+  respondedAt DateTime?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  user        User           @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+}
+
+model Media {
+  id         String   @id @default(cuid())
+  filename   String
+  originalName String
+  url        String
+  mimeType   String
+  size       Int      // in bytes
+  category   String?  // products, banners, documents, etc.
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+  
+  @@index([category])
+  @@index([uploadedBy])
+}
+
+model AdminActivityLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  action      String   // CREATED, UPDATED, DELETED, LOGIN, etc.
+  entity      String   // USER, PRODUCT, ORDER, etc.
+  entityId    String?
+  details     String?  // JSON
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  
+  admin       AdminUser @relation(fields: [adminId], references: [id])
+  
+  @@index([adminId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String
+  entityId    String?
+  details     String?  // JSON
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  
+  user        User?    @relation("UserAuditLog", fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  content     String   // HTML template
+  variables   String?  // JSON array of available variables
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([name])
+}
+
+model NotificationLog {
+  id          String           @id @default(cuid())
+  type        NotificationType // EMAIL, SMS, WHATSAPP, PUSH
+  recipient   String
+  subject     String?
+  content     String
+  status      NotificationStatus @default(PENDING)
+  sentAt      DateTime?
+  error       String?
+  createdAt   DateTime         @default(now())
+  
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}

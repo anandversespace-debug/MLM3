@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    const coupon = await prisma.coupon.update({
+      where: { id },
+      data: body
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: coupon
+    });
+  } catch (error) {
+    console.error('Update coupon error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update coupon' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    await prisma.coupon.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Coupon deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete coupon error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete coupon' },
+      { status: 500 }
+    );
+  }
+}
