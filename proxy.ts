@@ -7,7 +7,7 @@ import { rateLimit } from '@/lib/rate-limit';
  * Next.js Proxy - Applied to all routes
  * Handles: Security headers, CORS, rate limiting, protected routes
  */
-export default async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const response = NextResponse.next();
